@@ -1,12 +1,18 @@
 import streamlit as st
+from joblib import load  # Explicit import to avoid circular issues
 import numpy as np
 from joblib import load
 
 # Load model
 model = load('random_forest_model.pkl')
 
+st.title('My Model Prediction App')
 st.title('Hypertension Prediction App')
 
+# Input fields
+feature1 = st.number_input('Feature 1')
+feature2 = st.number_input('Feature 2')
+feature3 = st.number_input('Feature 3')
 # Input fields for all 23 features
 sex = st.selectbox('Sex', [0, 1])
 education = st.selectbox('Education Level', [0, 1, 2, 3, 4])  # Adjust as needed
@@ -43,5 +49,7 @@ input_data = np.array([[
 
 # Prediction
 if st.button('Predict'):
-    prediction = model.predict(input_data)
-    st.success(f'Prediction: {"Hypertensive" if prediction[0]==1 else "Not Hypertensive"}')
+    input_data = np.array([[feature1, feature2, feature3]])
+prediction = model.predict(input_data)
+st.write(f'Prediction: {prediction[0]}')
+st.success(f'Prediction: {"Hypertensive" if prediction[0]==1 else "Not Hypertensive"}')
