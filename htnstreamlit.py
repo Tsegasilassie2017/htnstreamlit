@@ -1,10 +1,22 @@
 import streamlit as st
 from joblib import load
 import numpy as np
+import os
+import gdown
 
-# Load model
-model = load('random_forest_model.pkl')
+# === Step 1: Download the model from Google Drive ===
+file_id = "1UPGaTIFQgdNQuT4bcC6S0SVJhj5KqR4z"
+url = f"https://drive.google.com/uc?id={file_id}"
+model_path = "random_forest_model.pkl"
 
+if not os.path.exists(model_path):
+    with st.spinner("Downloading model..."):
+        gdown.download(url, model_path, quiet=False)
+
+# === Step 2: Load model ===
+model = load(model_path)
+
+# === Step 3: App UI ===
 st.title('Hypertension Prediction App')
 st.markdown("""
 This is a Hypertension Prediction Model built for the master's thesis project in Epidemiology  
@@ -13,9 +25,9 @@ by Tsegasilassie Gebremariam at Debre Berhan University.
 
 # Input fields for all 23 features
 sex = st.selectbox('Sex', [0, 1])
-education = st.selectbox('Education Level', [0, 1, 2, 3, 4])  # Adjust as needed
-marital_status = st.selectbox('Marital Status', [0, 1, 2])    # Adjust as needed
-occupation = st.selectbox('Occupation', [0, 1, 2, 3, 4])       # Adjust as needed
+education = st.selectbox('Education Level', [0, 1, 2, 3, 4])
+marital_status = st.selectbox('Marital Status', [0, 1, 2])
+occupation = st.selectbox('Occupation', [0, 1, 2, 3, 4])
 adult_18 = st.selectbox('Adult >= 18', [0, 1])
 current_smoking = st.selectbox('Current Smoking', [0, 1])
 past_smoking = st.selectbox('Past Smoking', [0, 1])
@@ -36,7 +48,7 @@ fbg = st.number_input('FBG')
 whr = st.number_input('Weight to Hip Ratio')
 chol = st.number_input('Total Cholesterol Level')
 
-# Collect all inputs in correct order
+# Prepare input data
 input_data = np.array([[ 
     sex, education, marital_status, occupation, adult_18,
     current_smoking, past_smoking, days_fruit, servings_fruit,
@@ -45,7 +57,7 @@ input_data = np.array([[
     avg_pr, bmi, fbg, whr, chol
 ]])
 
-# Prediction
+# Predict and show result
 if st.button('Predict'):
     prediction = model.predict(input_data)
     st.write(f'Prediction: {prediction[0]}')
