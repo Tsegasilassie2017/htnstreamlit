@@ -1,18 +1,16 @@
 import streamlit as st
-from joblib import load  # Explicit import to avoid circular issues
-import numpy as np
 from joblib import load
+import numpy as np
 
 # Load model
 model = load('random_forest_model.pkl')
 
-st.title('My Model Prediction App')
 st.title('Hypertension Prediction App')
+st.markdown("""
+This is a Hypertension Prediction Model built for the master's thesis project in Epidemiology  
+by Tsegasilassie Gebremariam at Debre Berhan University.
+""")
 
-# Input fields
-feature1 = st.number_input('Feature 1')
-feature2 = st.number_input('Feature 2')
-feature3 = st.number_input('Feature 3')
 # Input fields for all 23 features
 sex = st.selectbox('Sex', [0, 1])
 education = st.selectbox('Education Level', [0, 1, 2, 3, 4])  # Adjust as needed
@@ -39,7 +37,7 @@ whr = st.number_input('Weight to Hip Ratio')
 chol = st.number_input('Total Cholesterol Level')
 
 # Collect all inputs in correct order
-input_data = np.array([[
+input_data = np.array([[ 
     sex, education, marital_status, occupation, adult_18,
     current_smoking, past_smoking, days_fruit, servings_fruit,
     days_veg, servings_veg, add_salt, processed_food, salt_amount,
@@ -49,7 +47,6 @@ input_data = np.array([[
 
 # Prediction
 if st.button('Predict'):
-    input_data = np.array([[feature1, feature2, feature3]])
-prediction = model.predict(input_data)
-st.write(f'Prediction: {prediction[0]}')
-st.success(f'Prediction: {"Hypertensive" if prediction[0]==1 else "Not Hypertensive"}')
+    prediction = model.predict(input_data)
+    st.write(f'Prediction: {prediction[0]}')
+    st.success(f'Prediction: {"Hypertensive" if prediction[0] == 1 else "Not Hypertensive"}')
