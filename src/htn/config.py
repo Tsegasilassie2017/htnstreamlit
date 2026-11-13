@@ -28,6 +28,22 @@ def feature_lists(cfg: dict) -> tuple[list[str], list[str]]:
     return categorical, numeric
 
 
+def assert_modeling_ready(cfg: dict) -> None:
+    """Prevent fitting until target construction and validation are approved."""
+    if not cfg.get("modeling", {}).get("enabled", False):
+        raise RuntimeError(
+            "Model fitting is disabled. Verify and freeze the hypertension "
+            "outcome algorithm and country-aware validation plan, then set "
+            "modeling.enabled=true in config/config.yaml."
+        )
+    status = cfg.get("outcome", {}).get("status", "")
+    if status != "verified":
+        raise RuntimeError(
+            "Model fitting requires outcome.status='verified' after review "
+            "of the questionnaire and analysis protocol."
+        )
+
+
 def resolve(cfg_path: str | Path) -> Path:
     """Resolve a configured repository path, preserving absolute paths."""
     path = Path(cfg_path)

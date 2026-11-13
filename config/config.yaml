@@ -47,9 +47,6 @@ outcome:
     - told_high_bp
 
 features:
-  # Questionnaire-harmonized adult variables with high coverage and cleaned
-  # anthropometry. These are provisional until the harmonized file and
-  # outcome derivation are frozen.
   categorical:
     - sex_harmonized
     - marital_status_harmonized
@@ -59,7 +56,6 @@ features:
     - waist_clean
     - bmi_clean
   exclude: []
-
   sensitivity_candidates:
     sociodemographic:
       - education_years_clean
@@ -69,8 +65,6 @@ features:
       - vegetable_days_week_clean
       - fruit_servings_on_eating_day_clean
       - vegetable_servings_on_eating_day_clean
-    # Keep these disabled until the country questionnaire code maps and
-    # harmonization/QC are verified.
     pending_questionnaire_crosswalk:
       tobacco: []
       alcohol: []
@@ -105,6 +99,10 @@ validation:
     These candidate countries have already appeared in exploratory analyses.
     Treat prior results as exploratory; select and freeze a defensible final
     validation plan before reporting final performance.
+
+modeling:
+  enabled: false
+  enable_only_after_outcome_and_validation_review: true
 
 training:
   cv_folds: 5

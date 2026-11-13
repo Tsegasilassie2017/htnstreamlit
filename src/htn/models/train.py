@@ -1,4 +1,4 @@
-"""Steps 5-6: baseline comparison with cross-validation, then hyper-parameter tuning."""
+"""Steps 5-6: model comparison and hyper-parameter tuning."""
 import json
 from datetime import datetime, timezone
 
@@ -11,7 +11,7 @@ from sklearn.model_selection import (RandomizedSearchCV, StratifiedKFold,
                                      cross_validate)
 from sklearn.pipeline import Pipeline
 
-from htn.config import feature_lists, resolve
+from htn.config import assert_modeling_ready, feature_lists, resolve
 from htn.features.pipeline import build_preprocessor
 
 
@@ -46,24 +46,34 @@ def _pipe(cfg, model) -> Pipeline:
 
 
 def compare_models(train: pd.DataFrame, cfg: dict) -> pd.DataFrame:
-    """Cross-validated comparison on the TRAIN set only."""
-    cat, num = feature_lists(cfg)
-    X, y = train[cat + num], train[cfg["data"]["target"]]
+    """Cross-validated comparison on training data only."""
+    assert_modeling_ready(cfg)
+    categorical, numeric = feature_lists(cfg)
+    X, y = train[categorical + numeric], train[cfg["data"]["target"]]
     cv = StratifiedKFold(cfg["training"]["cv_folds"], shuffle=True,
                          random_state=cfg["random_state"])
     rows = []
     for name, model in candidates(cfg["random_state"]).items():
-        res = cross_validate(_pipe(cfg, model), X, y, cv=cv,
-                             scoring=["roc_auc", "average_precision", "recall", "f1"])
-        rows.append({"model": name,
-                     **{k.replace("test_", ""): v.mean().round(4)
-                        for k, v in res.items() if k.startswith("test_")}})
-    return pd.DataFrame(rows).sort_values(cfg["training"]["primary_metric"], ascending=False)
+        result = cross_validate(
+            _pipe(cfg, model), X, y, cv=cv,
+            scoring=["roc_auc", "average_precision", "recall", "f1"],
+        )
+        rows.append({
+            "model": name,
+            **{
+                key.replace("test_", ""): values.mean().round(4)
+                for key, values in result.items() if key.startswith("test_")
+            },
+        })
+    return pd.DataFrame(rows).sort_values(
+        cfg["training"]["primary_metric"], ascending=False
+    )
 
 
 def tune_and_fit(train: pd.DataFrame, cfg: dict, model_name: str):
-    cat, num = feature_lists(cfg)
-    X, y = train[cat + num], train[cfg["data"]["target"]]
+    assert_modeling_ready(cfg)
+    categorical, numeric = feature_lists(cfg)
+    X, y = train[categorical + numeric], train[cfg["data"]["target"]]
     cv = StratifiedKFold(cfg["training"]["cv_folds"], shuffle=True,
                          random_state=cfg["random_state"])
     search = RandomizedSearchCV(
@@ -78,15 +88,18 @@ def tune_and_fit(train: pd.DataFrame, cfg: dict, model_name: str):
 
 
 def save_artifact(pipeline, cfg, model_name, best_params, cv_score):
-    cat, num = feature_lists(cfg)
-    features = cat + num
+    assert_modeling_ready(cfg)
+    categorical, numeric = feature_lists(cfg)
+    features = categorical + numeric
     model_path = resolve(cfg["artifacts"]["model_path"])
     model_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump({"pipeline": pipeline, "features": features}, model_path)
     meta = {
         "model": model_name,
-        "best_params": {k: (v if isinstance(v, (int, float, str, type(None))) else str(v))
-                        for k, v in best_params.items()},
+        "best_params": {
+            key: (value if isinstance(value, (int, float, str, type(None))) else str(value))
+            for key, value in best_params.items()
+        },
         "cv_score": round(cv_score, 4),
         "metric": cfg["training"]["primary_metric"],
         "features": features,
@@ -94,6 +107,8 @@ def save_artifact(pipeline, cfg, model_name, best_params, cv_score):
         "sklearn_version": sklearn.__version__,
         "joblib_version": joblib.__version__,
     }
-    with open(resolve(cfg["artifacts"]["metadata_path"]), "w", encoding="utf-8") as f:
-        json.dump(meta, f, indent=2)
+    metadata_path = resolve(cfg["artifacts"]["metadata_path"])
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    with metadata_path.open("w", encoding="utf-8") as stream:
+        json.dump(meta, stream, indent=2)
     return meta

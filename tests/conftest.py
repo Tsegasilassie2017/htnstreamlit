@@ -12,7 +12,11 @@ from htn.config import feature_lists, load_config  # noqa: E402
 
 @pytest.fixture(scope="session")
 def cfg():
-    return load_config()
+    config = load_config()
+    # This fixture uses a synthetic target only to exercise the software path.
+    config["modeling"]["enabled"] = True
+    config["outcome"]["status"] = "verified"
+    return config
 
 
 @pytest.fixture()
