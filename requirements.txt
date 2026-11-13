@@ -1,5 +1,11 @@
+# TIP: after training, pin scikit-learn/joblib to the exact versions in
+# models/model_metadata.json so the deployed app loads the model identically.
 streamlit
+pandas
+numpy
 scikit-learn
 joblib
+pyyaml
+matplotlib
 gdown
-numpy
+pytest
