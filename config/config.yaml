@@ -1,0 +1,65 @@
+project: hypertension-prediction
+random_state: 42
+
+data:
+  raw_path: data/raw/htn_dataset.csv        # put your dataset here (git-ignored)
+  train_path: data/processed/train.csv
+  test_path: data/processed/test.csv
+  target: hypertension                       # 1 = hypertensive, 0 = not  (rename to your column)
+  test_size: 0.20
+
+features:
+  categorical:
+    - sex
+    - education
+    - marital_status
+    - occupation
+    - adult_18
+    - current_smoking
+    - past_smoking
+    - add_salt
+    - processed_food
+    - vigorous_work
+    - moderate_work
+    - told_high_bp
+  numeric:
+    - days_fruit
+    - servings_fruit
+    - days_veg
+    - servings_veg
+    - salt_amount
+    - sedentary_hours
+    - avg_pr
+    - bmi
+    - fbg
+    - whr
+    - chol
+  # Features to drop before modelling (e.g. suspected outcome leakage).
+  # Try adding told_high_bp here and compare performance.
+  exclude: []
+
+# Plausible ranges; values outside become missing and are imputed (UNITS ARE ASSUMPTIONS: verify!)
+ranges:
+  days_fruit: [0, 7]
+  days_veg: [0, 7]
+  servings_fruit: [0, 20]
+  servings_veg: [0, 20]
+  salt_amount: [0, 50]
+  sedentary_hours: [0, 24]
+  avg_pr: [30, 200]
+  bmi: [10, 70]
+  fbg: [30, 600]       # mg/dL
+  whr: [0.4, 1.5]
+  chol: [50, 500]      # mg/dL
+
+training:
+  cv_folds: 5
+  primary_metric: roc_auc
+  tuning_iterations: 20
+  decision_threshold: 0.5
+
+artifacts:
+  model_path: models/htn_pipeline.joblib
+  metadata_path: models/model_metadata.json
+  metrics_path: reports/metrics.json
+  figures_dir: reports/figures
