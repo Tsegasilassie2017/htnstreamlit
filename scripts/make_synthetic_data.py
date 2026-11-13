@@ -1,25 +1,44 @@
-"""Generate a SYNTHETIC dataset to smoke-test the pipeline (not real data!)."""
+"""Create synthetic questionnaire-shaped data for software smoke tests only."""
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
-rng = np.random.default_rng(0)
-n = 1500
+rng = np.random.default_rng(42)
+n = 1800
+countries = np.array([
+    "ken2015", "sdn2016", "ben2015", "cpv2020", "caf2017",
+    "mwi2017", "stp2019", "zmb2017", "eth2015",
+])
 df = pd.DataFrame({
-    "sex": rng.integers(0, 2, n), "education": rng.integers(0, 5, n),
-    "marital_status": rng.integers(0, 3, n), "occupation": rng.integers(0, 5, n),
-    "adult_18": 1, "current_smoking": rng.integers(0, 2, n), "past_smoking": rng.integers(0, 2, n),
-    "days_fruit": rng.integers(0, 8, n), "servings_fruit": rng.uniform(0, 5, n),
-    "days_veg": rng.integers(0, 8, n), "servings_veg": rng.uniform(0, 5, n),
-    "add_salt": rng.integers(0, 2, n), "processed_food": rng.integers(0, 2, n),
-    "salt_amount": rng.uniform(1, 15, n), "vigorous_work": rng.integers(0, 2, n),
-    "moderate_work": rng.integers(0, 2, n), "sedentary_hours": rng.uniform(1, 14, n),
-    "told_high_bp": rng.integers(0, 2, n), "avg_pr": rng.normal(75, 10, n).round(),
-    "bmi": rng.normal(24, 4, n), "fbg": rng.normal(95, 20, n),
-    "whr": rng.normal(0.9, 0.07, n), "chol": rng.normal(180, 35, n),
+    "country_key": rng.choice(countries, n),
+    "age_years_clean": rng.integers(18, 70, n),
+    "sex_harmonized": rng.choice(["Female", "Male"], n),
+    "marital_status_harmonized": rng.choice(
+        ["Never married", "Married/cohabiting", "Previously married"], n
+    ),
+    "work_status_harmonized": rng.choice(
+        ["Paid work", "Homemaker", "Student", "Unemployed, able to work",
+         "Unpaid work", "Retired", "Unable to work"], n
+    ),
+    "waist_clean": rng.normal(84, 14, n).clip(45, 150),
+    "bmi_clean": rng.normal(25, 5, n).clip(14, 55),
 })
-logit = (0.08 * (df.bmi - 24) + 0.03 * (df.fbg - 95) + 0.1 * df.salt_amount
-         + 0.5 * df.told_high_bp + 0.4 * df.current_smoking - 2.5)
-df["hypertension"] = (rng.random(n) < 1 / (1 + np.exp(-logit))).astype(int)
-df.loc[rng.choice(n, 40, replace=False), "bmi"] = np.nan  # some missingness
-df.to_csv("data/raw/htn_dataset.csv", index=False)
-print("Wrote data/raw/htn_dataset.csv", df.shape, "prevalence:", df.hypertension.mean().round(3))
+linear = (
+    -4.0
+    + 0.055 * (df["age_years_clean"] - 40)
+    + 0.018 * (df["waist_clean"] - 85)
+    + 0.035 * (df["bmi_clean"] - 25)
+)
+prob = 1 / (1 + np.exp(-linear))
+df["hypertension"] = rng.binomial(1, prob, n).astype("int8")
+df.loc[rng.choice(n, 70, replace=False), "waist_clean"] = np.nan
+df.loc[rng.choice(n, 55, replace=False), "bmi_clean"] = np.nan
+
+output = Path("data/raw/synthetic_adult_model_dataset.csv")
+output.parent.mkdir(parents=True, exist_ok=True)
+df.to_csv(output, index=False)
+print(
+    f"Wrote synthetic-only data to {output} "
+    f"({len(df):,} rows; prevalence={df['hypertension'].mean():.3f})."
+)

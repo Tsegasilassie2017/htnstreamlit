@@ -18,11 +18,27 @@ def cfg():
 @pytest.fixture()
 def df(cfg):
     rng = np.random.default_rng(1)
-    cat, num = feature_lists(cfg)
+    categorical, numeric = feature_lists(cfg)
     n = 300
-    d = pd.DataFrame({c: rng.integers(0, 2, n) for c in cat})
-    for c in num:
-        d[c] = rng.uniform(1, 5, n)
-    d["bmi"] = rng.normal(24, 4, n)
-    d[cfg["data"]["target"]] = (d["bmi"] + rng.normal(0, 3, n) > 25).astype(int)
-    return d
+    data = {
+        "country_key": rng.choice(
+            ["ken2015", "sdn2016", "ben2015", "cpv2020", "eth2015"], n
+        ),
+        "age_years_clean": rng.integers(18, 70, n),
+    }
+    for column in categorical:
+        if column == "sex_harmonized":
+            data[column] = rng.choice(["Female", "Male"], n)
+        elif column == "marital_status_harmonized":
+            data[column] = rng.choice(
+                ["Never married", "Married/cohabiting", "Previously married"], n
+            )
+        else:
+            data[column] = rng.choice(["Paid work", "Homemaker", "Student"], n)
+    for column in numeric:
+        data[column] = rng.uniform(15, 45, n)
+    frame = pd.DataFrame(data)
+    frame["hypertension"] = (
+        frame["age_years_clean"] + rng.normal(0, 15, n) > 45
+    ).astype(int)
+    return frame

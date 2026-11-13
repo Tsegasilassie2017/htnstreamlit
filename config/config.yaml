@@ -1,62 +1,122 @@
-project: hypertension-prediction
+project:
+  name: hypertension-prediction
+  population: adults_18_plus
+  source: WHO STEPS country CSV files
+  countries:
+    ken2015: Kenya
+    sdn2016: Sudan
+    ben2015: Benin
+    cpv2020: Cabo Verde
+    caf2017: Central African Republic
+    mwi2017: Malawi
+    stp2019: Sao Tome and Principe
+    zmb2017: Zambia
+    eth2015: Ethiopia
+
 random_state: 42
 
 data:
-  raw_path: data/raw/htn_dataset.csv        # put your dataset here (git-ignored)
+  raw_path: data/raw/hypertension_adult_model_dataset.csv
   train_path: data/processed/train.csv
   test_path: data/processed/test.csv
-  target: hypertension                       # 1 = hypertensive, 0 = not  (rename to your column)
+  target: hypertension
+  country_column: country_key
+  adult_age_column: age_years_clean
+  minimum_age_years: 18
   test_size: 0.20
+  # The row-level split is for software development only. It is not the
+  # final validation design for a multi-country model.
+  split_use: development_smoke_test_only
+
+outcome:
+  column: hypertension
+  status: pending_questionnaire_and_protocol_verification
+  definition: >
+    Binary prevalent hypertension derived from protocol-defined measured
+    blood-pressure readings and/or antihypertensive medication. The exact
+    STEPS edition-specific coding and case algorithm must be verified before
+    generating labels. Do not infer the rule from predictor performance.
+  source_measurements: country-specific measured SBP/DBP readings and medication item
+  predictors_must_exclude:
+    - sbp_reading2_raw
+    - dbp_reading2_raw
+    - sbp_reading3_raw
+    - dbp_reading3_raw
+    - bp_medication_raw
+    - self_reported_hypertension
+    - told_high_bp
 
 features:
+  # Questionnaire-harmonized adult variables with high coverage and cleaned
+  # anthropometry. These are provisional until the harmonized file and
+  # outcome derivation are frozen.
   categorical:
-    - sex
-    - education
-    - marital_status
-    - occupation
-    - adult_18
-    - current_smoking
-    - past_smoking
-    - add_salt
-    - processed_food
-    - vigorous_work
-    - moderate_work
-    - told_high_bp
+    - sex_harmonized
+    - marital_status_harmonized
+    - work_status_harmonized
   numeric:
-    - days_fruit
-    - servings_fruit
-    - days_veg
-    - servings_veg
-    - salt_amount
-    - sedentary_hours
-    - avg_pr
-    - bmi
-    - fbg
-    - whr
-    - chol
-  # Features to drop before modelling (e.g. suspected outcome leakage).
-  # Try adding told_high_bp here and compare performance.
+    - age_years_clean
+    - waist_clean
+    - bmi_clean
   exclude: []
 
-# Plausible ranges; values outside become missing and are imputed (UNITS ARE ASSUMPTIONS: verify!)
-ranges:
-  days_fruit: [0, 7]
-  days_veg: [0, 7]
-  servings_fruit: [0, 20]
-  servings_veg: [0, 20]
-  salt_amount: [0, 50]
-  sedentary_hours: [0, 24]
-  avg_pr: [30, 200]
-  bmi: [10, 70]
-  fbg: [30, 600]       # mg/dL
-  whr: [0.4, 1.5]
-  chol: [50, 500]      # mg/dL
+  sensitivity_candidates:
+    sociodemographic:
+      - education_years_clean
+      - education_level_model_candidate
+    diet:
+      - fruit_days_week_clean
+      - vegetable_days_week_clean
+      - fruit_servings_on_eating_day_clean
+      - vegetable_servings_on_eating_day_clean
+    # Keep these disabled until the country questionnaire code maps and
+    # harmonization/QC are verified.
+    pending_questionnaire_crosswalk:
+      tobacco: []
+      alcohol: []
+      physical_activity: []
+      biochemistry: []
+      household_size: []
+
+data_quality:
+  preserve_raw_values: true
+  convert_questionnaire_special_codes_to_missing: only_after_country_code_review
+  automatic_outlier_capping: false
+  anthropometry_clean_columns:
+    height: height_clean
+    weight: weight_clean
+    waist: waist_clean
+    bmi: bmi_clean
+  known_review_items:
+    - Sudan education has structural skips for respondents with XC1=2; do not treat as ordinary missingness.
+    - Ethiopia education C5 code 5 remains unverified and is excluded from the harmonized education candidate.
+    - CAR household-size C9 includes 269 zeros and one value of 56; household size is not a pooled core predictor.
+    - CAR fruit/vegetable follow-ups conflict with zero-days responses; review before using derived intake.
+    - CAR fruit servings include values up to 60 on eating days; do not cap without questionnaire/source review.
+    - Cabo Verde, Malawi, and Zambia show higher missingness in some derived diet variables.
+
+validation:
+  primary_design: country_grouped_or_country_held_out
+  status: not_frozen
+  candidate_holdout_countries_previously_examined:
+    - cpv2020
+    - sdn2016
+  note: >
+    These candidate countries have already appeared in exploratory analyses.
+    Treat prior results as exploratory; select and freeze a defensible final
+    validation plan before reporting final performance.
 
 training:
   cv_folds: 5
   primary_metric: roc_auc
+  secondary_metrics:
+    - average_precision
+    - brier_score
+    - sensitivity
+    - specificity
   tuning_iterations: 20
-  decision_threshold: 0.5
+  decision_threshold: null
+  threshold_selection: choose_on_training_data_only
 
 artifacts:
   model_path: models/htn_pipeline.joblib

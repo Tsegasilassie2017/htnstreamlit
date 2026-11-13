@@ -1,17 +1,22 @@
-"""Human-readable labels for coded variables.
-!! VERIFY every mapping against your training data dictionary (docs/data_dictionary.md).
-   The numeric codes must be IDENTICAL to what the model was trained on."""
+"""Questionnaire harmonization labels.
 
-YES_NO = {"No": 0, "Yes": 1}
+Keep source codes and country-specific mappings in the data-management
+crosswalk. This module only documents the canonical labels emitted by that
+harmonization; it must not guess raw questionnaire codes.
+"""
 
-CODE_MAPS = {
-    "sex": {"Female": 0, "Male": 1},                                   # TODO verify
-    "education": {"No formal education": 0, "Primary": 1, "Secondary": 2,
-                  "Diploma": 3, "Degree or higher": 4},                # TODO verify
-    "marital_status": {"Single": 0, "Married": 1, "Divorced/Widowed": 2},  # TODO verify
-    "occupation": {"Unemployed": 0, "Farmer": 1, "Employee": 2,
-                   "Merchant": 3, "Other": 4},                         # TODO verify
-    "adult_18": YES_NO, "current_smoking": YES_NO, "past_smoking": YES_NO,
-    "add_salt": YES_NO, "processed_food": YES_NO, "vigorous_work": YES_NO,
-    "moderate_work": YES_NO, "told_high_bp": YES_NO,
+CANONICAL_LABELS = {
+    "sex_harmonized": ["Female", "Male"],
+    "education_level_model_candidate": [
+        "No formal schooling",
+        "Below primary",
+        "Primary completed",
+        "Secondary",
+        "Tertiary or higher",
+    ],
 }
+
+# The outcome is not constructed here. Confirm country-specific BP and
+# medication coding against each STEPS questionnaire and the analysis protocol.
+OUTCOME_COLUMN = "hypertension"
+OUTCOME_STATUS = "pending_questionnaire_and_protocol_verification"
